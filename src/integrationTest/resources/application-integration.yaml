@@ -11,5 +11,7 @@ spring:
     show-sql: true
 
 server:
+  servlet:
+    context-path: /api
   error:
     include-exception: true

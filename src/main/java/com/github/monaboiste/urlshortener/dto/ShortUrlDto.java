@@ -16,5 +16,6 @@ public class ShortUrlDto {
     private long id;
     private String url;
     private String alias;
+    private String redirectingUrl;
     private LocalDateTime createdAt;
 }
