@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/url_shortener
+    username: root
+    password: mysql
+  jpa:
+    # Set `hibernate.ddl-auto` to `create` if first time run the application
+    # WARNING: it MIGHT DROP TABLES if you already have data in your url_shortener database
+    hibernate.ddl-auto: update
+    properties.hibernate.dialect: org.hibernate.dialect.MySQL5InnoDBDialect
+    show-sql: true
+
+server:
+  port: 8080
+  error:
+    include-exception: true
