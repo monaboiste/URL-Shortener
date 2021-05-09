@@ -1,21 +1,23 @@
 package com.github.monaboiste.urlshortener.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.monaboiste.urlshortener.dto.ShortUrlDto;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import com.github.monaboiste.urlshortener.error.Error;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.server.LocalServerPort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.web.client.RestTemplate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @ActiveProfiles("integration")
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
@@ -38,40 +40,99 @@ public class ShortUrlControllerIntegrationTest {
     @Value("${client.domain}")
     private String testClientUrl;
 
-    private final RestTemplate restTemplate = new RestTemplate();
-
     @Autowired
     private ObjectMapper objectMapper;
 
-    @BeforeEach
+    private TestRestTemplate restTemplate;
+
+    @BeforeAll
     void setUp() {
         testServerUrl = String.format("%s:%d", testServerUrl, testServerPort);
         testClientUrl = String.format("%s:%d", testClientUrl, testClientPort);
+        restTemplate = new TestRestTemplate();
     }
 
     @Test
-    void shouldCreateNewShortUrlAndReturnCreatedShortUrlDto() throws Exception {
+    @Order(1)
+    void shouldCreateNewShortUrlAndReturnCreatedShortUrlDto_Returns_201() throws Exception {
         final ShortUrlDto shortUrlDto = ShortUrlDto.builder()
-                .id(1)
                 .url("example.com")
                 .alias("ex")
                 .build();
-        final String redirectingUrl = String.format("%s/%s",testClientUrl, shortUrlDto.getAlias());
+        final String redirectingUrl = String.format("%s/%s", testClientUrl, shortUrlDto.getAlias());
+        final HttpEntity<ShortUrlDto> request = createRequest(shortUrlDto);
 
         final ResponseEntity<ShortUrlDto> response = restTemplate.postForEntity(
                 testServerUrl + "/api/short_urls",
-                shortUrlDto,
+                request,
                 ShortUrlDto.class
         );
         final ShortUrlDto shortUrlDtoInResponse = response.getBody();
 
         assertAll(
-                () -> assertEquals(response.getStatusCode(), HttpStatus.CREATED),
-                () -> assertEquals(shortUrlDto.getId(), shortUrlDtoInResponse.getId()),
-                () -> assertEquals(shortUrlDto.getUrl(), shortUrlDtoInResponse.getUrl()),
-                () -> assertEquals(shortUrlDto.getAlias(), shortUrlDtoInResponse.getAlias()),
+                () -> assertEquals(HttpStatus.CREATED, response.getStatusCode()),
+                () -> assertEquals(shortUrlDtoInResponse.getUrl(), shortUrlDto.getUrl()),
+                () -> assertEquals(shortUrlDtoInResponse.getAlias(), shortUrlDto.getAlias()),
                 () -> assertEquals(redirectingUrl, shortUrlDtoInResponse.getRedirectingUrl()),
+                () -> assertNotEquals(0, shortUrlDtoInResponse.getId()),
                 () -> assertNotNull(shortUrlDtoInResponse.getCreatedAt())
         );
+    }
+
+    /**
+     * Should be run after shouldCreateNewShortUrlAndReturnCreatedShortUrlDto_Returns_201
+     */
+    @Test
+    @Order(2)
+    void shouldFailOnCreatingShortUrlWithTakenAlias_Returns_400() throws Exception {
+        final ShortUrlDto shortUrlDto = ShortUrlDto.builder()
+                .url("example.com")
+                .alias("ex")
+                .build();
+        final HttpEntity<ShortUrlDto> request = createRequest(shortUrlDto);
+
+        final ResponseEntity<String> response = restTemplate.postForEntity(
+                testServerUrl + "/api/short_urls",
+                request,
+                String.class
+        );
+        final Error error = convertToPojo(response.getBody(), Error.class);
+
+        assertAll(
+                () -> assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode()),
+                () -> assertEquals(1, error.getErrors().size()),
+                () -> assertEquals("alias", error.getErrors().get(0).getField())
+        );
+    }
+
+    @Test
+    void shouldFailOnCreatingShortUrlWithNoRequiredUrlField_Returns_400() throws Exception {
+        final ShortUrlDto shortUrlDto = ShortUrlDto.builder()
+                .alias("example")
+                .build();
+        final HttpEntity<ShortUrlDto> request = createRequest(shortUrlDto);
+
+        final ResponseEntity<String> response = restTemplate.postForEntity(
+                testServerUrl + "/api/short_urls",
+                request,
+                String.class
+        );
+        final Error error = convertToPojo(response.getBody(), Error.class);
+
+        assertAll(
+                () -> assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode()),
+                () -> assertEquals(1, error.getErrors().size()),
+                () -> assertEquals("url", error.getErrors().get(0).getField())
+        );
+    }
+
+    private <T> HttpEntity<T> createRequest(final T requestedBody) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        return new HttpEntity<>(requestedBody, headers);
+    }
+
+    private <T> T convertToPojo(final String jsonString, Class clazz) throws JsonProcessingException {
+        return (T) objectMapper.readValue(jsonString, clazz);
     }
 }

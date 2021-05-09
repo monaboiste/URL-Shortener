@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 public class ShortUrlConverter {
 
     public static ShortUrl convertToEntity(final ShortUrlDto shortUrlDto) {
-        ShortUrl shortUrl = ShortUrl.builder()
+        final ShortUrl shortUrl = ShortUrl.builder()
                 .id(shortUrlDto.getId())
                 .url(shortUrlDto.getUrl())
                 .alias(shortUrlDto.getAlias())
@@ -20,10 +20,9 @@ public class ShortUrlConverter {
     }
 
     public static ShortUrlDto convertToDto(final ShortUrl shortUrl) {
-        LocalDateTime localDateTime = DateTimeZoneConverter
+        final LocalDateTime localDateTime = DateTimeZoneConverter
                 .convertUtcToLocalDateTime(shortUrl.getCreatedAt());
-
-        ShortUrlDto shortUrlDto = ShortUrlDto.builder()
+        final ShortUrlDto shortUrlDto = ShortUrlDto.builder()
                 .id(shortUrl.getId())
                 .url(shortUrl.getUrl())
                 .alias(shortUrl.getAlias())

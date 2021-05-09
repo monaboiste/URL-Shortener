@@ -33,11 +33,6 @@ public class ShortUrlRepositoryTest {
                 .build();
     }
 
-    @AfterEach
-    void tearDown() {
-        shortUrlRepository.deleteAllInBatch();
-    }
-
     @Test
     void shouldCheckIfExistsByAlias() {
         shortUrlRepository.save(shortUrl);
