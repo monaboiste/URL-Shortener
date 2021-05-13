@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.lang.Nullable;
 
 import javax.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
@@ -20,7 +21,7 @@ public class ShortUrlDto {
     @NotBlank
     private String url;
 
-    @NotBlank
+    @Nullable
     @UniqueAlias
     private String alias;
 

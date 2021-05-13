@@ -84,7 +84,7 @@ public class ShortUrlControllerIntegrationTest {
      */
     @Test
     @Order(2)
-    void shouldFailOnCreatingShortUrlWithTakenAlias_Returns_400() throws Exception {
+    void shouldFailOnCreatingShortUrlWhenTakenAlias_Returns_400() throws Exception {
         final ShortUrlDto shortUrlDto = ShortUrlDto.builder()
                 .url("example.com")
                 .alias("ex")
@@ -106,9 +106,9 @@ public class ShortUrlControllerIntegrationTest {
     }
 
     @Test
-    void shouldFailOnCreatingShortUrlWithNoRequiredUrlField_Returns_400() throws Exception {
+    void shouldFailOnCreatingShortUrlWhenNoRequiredUrlField_Returns_400() throws Exception {
         final ShortUrlDto shortUrlDto = ShortUrlDto.builder()
-                .alias("example")
+                .alias("ex3")
                 .build();
         final HttpEntity<ShortUrlDto> request = createRequest(shortUrlDto);
 
@@ -123,6 +123,30 @@ public class ShortUrlControllerIntegrationTest {
                 () -> assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode()),
                 () -> assertEquals(1, error.getErrors().size()),
                 () -> assertEquals("url", error.getErrors().get(0).getField())
+        );
+    }
+
+    @Test
+    void shouldCreateRandomAliasWhenNoAliasPresent_Returns_201() {
+        final ShortUrlDto shortUrlDto = ShortUrlDto.builder()
+                .url("example.com")
+                .build();
+        final HttpEntity<ShortUrlDto> request = createRequest(shortUrlDto);
+
+        final ResponseEntity<ShortUrlDto> response = restTemplate.postForEntity(
+                testServerUrl + "/api/short_urls",
+                request,
+                ShortUrlDto.class
+        );
+        final ShortUrlDto shortUrlDtoInResponse = response.getBody();
+
+        assertAll(
+                () -> assertEquals(HttpStatus.CREATED, response.getStatusCode()),
+                () -> assertEquals(shortUrlDtoInResponse.getUrl(), shortUrlDto.getUrl()),
+                () -> assertNotNull(shortUrlDtoInResponse.getAlias()),
+                () -> assertNotNull(shortUrlDtoInResponse.getRedirectingUrl()),
+                () -> assertNotEquals(0, shortUrlDtoInResponse.getId()),
+                () -> assertNotNull(shortUrlDtoInResponse.getCreatedAt())
         );
     }
 
