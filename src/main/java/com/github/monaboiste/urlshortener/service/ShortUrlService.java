@@ -32,11 +32,7 @@ public class ShortUrlService {
 
         final ShortUrl persistedShortUrl = shortUrlRepository.save(shortUrl);
 
-        ShortUrlDto shortUrlDtoResponse = ShortUrlConverter.convertToDto(persistedShortUrl);
-        shortUrlDtoResponse.setRedirectingUrl(
-                String.format("%s/%s", domainUrl, shortUrl.getAlias())
-        );
-        return shortUrlDtoResponse;
+        return ShortUrlConverter.convertToDto(persistedShortUrl, domainUrl);
     }
 
     private void setRandomGeneratedAlias(final ShortUrl shortUrl) {

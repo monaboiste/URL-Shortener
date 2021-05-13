@@ -13,6 +13,8 @@ import static org.junit.jupiter.api.Assertions.*;
 @ActiveProfiles("test")
 class ShortUrlConverterTest {
 
+    private static final String DOMAIN_URL = "http://localhost";
+
     @Test
     void shouldConvertShortUrlDtoToEntity() {
         final ShortUrlDto shortUrlDto = ShortUrlDto.builder()
@@ -41,7 +43,7 @@ class ShortUrlConverterTest {
                 .createdAt(utcDateTime)
                 .build();
 
-        final ShortUrlDto shortUrlDto = ShortUrlConverter.convertToDto(shortUrl);
+        final ShortUrlDto shortUrlDto = ShortUrlConverter.convertToDto(shortUrl, DOMAIN_URL);
 
         assertAll(
                 () -> assertEquals(shortUrl.getId(), shortUrlDto.getId()),
