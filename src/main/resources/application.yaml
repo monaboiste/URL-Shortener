@@ -13,7 +13,8 @@ spring:
     # Set `hibernate.ddl-auto` to `create` if first time run the application
     # WARNING: it MIGHT DROP TABLES if you already have data in your url_shortener database
     hibernate.ddl-auto: update
-    properties.hibernate.dialect: org.hibernate.dialect.MySQL5InnoDBDialect
+    properties:
+      hibernate.dialect: org.hibernate.dialect.MySQL5InnoDBDialect
     show-sql: true
     open-in-view: false
 
