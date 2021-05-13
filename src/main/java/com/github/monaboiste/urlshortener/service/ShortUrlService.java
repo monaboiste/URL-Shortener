@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -41,5 +42,10 @@ public class ShortUrlService {
             alias = aliasGeneratorService.generateRandomAlias();
         }
         shortUrl.setAlias(alias);
+    }
+
+    public List<ShortUrlDto> getAllShortUrls() {
+        final List<ShortUrl> shortUrls = shortUrlRepository.findAll();
+        return ShortUrlConverter.convertToDtoList(shortUrls, domainUrl);
     }
 }

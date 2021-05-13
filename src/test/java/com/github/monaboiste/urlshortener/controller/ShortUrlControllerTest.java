@@ -8,9 +8,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
@@ -19,8 +19,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -38,7 +42,6 @@ class ShortUrlControllerTest {
     @InjectMocks
     private ShortUrlController shortUrlController;
 
-    @Autowired
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -65,22 +68,69 @@ class ShortUrlControllerTest {
                 .redirectingUrl("http://localhost/ex")
                 .createdAt(LocalDateTime.now())
                 .build();
+
         when(shortUrlService.createShortUrl(any(ShortUrlDto.class)))
                 .thenReturn(shortUrlDtoResponse);
-
-        mockMvc.perform(post("/short_urls")
+        ResultActions resultActions = mockMvc.perform(post("/short_urls")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
-                .andDo(print())
+                .andDo(print());
+
+        resultActions
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(shortUrlDtoResponse.getId()))
-                .andExpect(jsonPath("$.url").value(shortUrlDtoResponse.getUrl()))
-                .andExpect(jsonPath("$.alias").value(shortUrlDtoResponse.getAlias()))
-                .andExpect(jsonPath("$.redirectingUrl").value(shortUrlDtoResponse.getRedirectingUrl()))
-                .andExpect(jsonPath("$.createdAt").value(serializeLocalDateTime(shortUrlDtoResponse.getCreatedAt())));
+                .andExpect(jsonPath("$.url", is(shortUrlDtoResponse.getUrl())))
+                .andExpect(jsonPath("$.alias", is(shortUrlDtoResponse.getAlias())))
+                .andExpect(jsonPath("$.redirectingUrl", is(shortUrlDtoResponse.getRedirectingUrl())))
+                .andExpect(jsonPath("$.createdAt", is(
+                        serializeLocalDateTime(shortUrlDtoResponse.getCreatedAt()))));
 
         verify(shortUrlService, times(1)).createShortUrl(any(ShortUrlDto.class));
     }
+
+    @Test
+    public void shouldFailWhenNoRequiredFieldsPresent() throws Exception{
+        final String payload = "{\n" +
+                "\"alias\": \"ex\"," +
+                "}";
+
+        ResultActions resultActions = mockMvc.perform(post("/short_urls")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+                .andDo(print());
+
+        resultActions.andExpect(status().is4xxClientError());
+    }
+
+    @Test
+    public void shouldGetShortUrlList() throws Exception{
+        final ShortUrlDto shortUrlDto = ShortUrlDto.builder()
+                .id(1)
+                .url("example.com")
+                .alias("ex")
+                .redirectingUrl("http://localhost/ex")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(shortUrlService.getAllShortUrls()).thenReturn(Arrays.asList(shortUrlDto));
+        ResultActions resultActions = mockMvc.perform(get("/short_urls")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON))
+                .andDo(print());
+
+        resultActions
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].id").value(shortUrlDto.getId()))
+                .andExpect(jsonPath("$[0].url", is(shortUrlDto.getUrl())))
+                .andExpect(jsonPath("$[0].alias", is(shortUrlDto.getAlias())))
+                .andExpect(jsonPath("$[0].redirectingUrl", is(shortUrlDto.getRedirectingUrl())))
+                .andExpect(jsonPath("$[0].createdAt", is(
+                        serializeLocalDateTime(shortUrlDto.getCreatedAt()))));
+
+        verify(shortUrlService, times(1)).getAllShortUrls();
+    }
+
 
     /**
      * Method converts LocalDateTime to List<Integer>.as
@@ -98,4 +148,6 @@ class ShortUrlControllerTest {
                 .map(Integer::parseInt)
                 .collect(Collectors.toList());
     }
+
+
 }

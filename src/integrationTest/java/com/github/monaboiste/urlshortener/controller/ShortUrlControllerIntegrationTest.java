@@ -10,8 +10,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -105,6 +108,24 @@ public class ShortUrlControllerIntegrationTest {
         );
     }
 
+    /**
+     * Should be run after shouldCreateNewShortUrlAndReturnCreatedShortUrlDto_Returns_201
+     */
+    @Test
+    @Order(3)
+    void shouldGetAllShortUrls_Returns_200() throws JsonProcessingException {
+        final ResponseEntity<String> response = restTemplate.getForEntity(
+                testServerUrl + "/api/short_urls",
+                String.class
+        );
+        final ShortUrlDto[] shortUrlDtos = convertToPojo(response.getBody(), ShortUrlDto[].class);
+
+        assertAll(
+                () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
+                () -> assertEquals(1, shortUrlDtos.length)
+        );
+    }
+
     @Test
     void shouldFailOnCreatingShortUrlWhenNoRequiredUrlField_Returns_400() throws Exception {
         final ShortUrlDto shortUrlDto = ShortUrlDto.builder()
@@ -158,5 +179,15 @@ public class ShortUrlControllerIntegrationTest {
 
     private <T> T convertToPojo(final String jsonString, Class clazz) throws JsonProcessingException {
         return (T) objectMapper.readValue(jsonString, clazz);
+    }
+
+    public <T> List<T> getApi(final String path, final HttpMethod method) {
+        final ResponseEntity<List<T>> response = restTemplate.exchange(
+                path,
+                method,
+                null,
+                new ParameterizedTypeReference<List<T>>(){});
+        List<T> list = response.getBody();
+        return list;
     }
 }
