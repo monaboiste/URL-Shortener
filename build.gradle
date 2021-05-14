@@ -61,3 +61,7 @@ task integrationTest(type: Test) {
 }
 
 check.dependsOn integrationTest
+
+bootRun {
+    systemProperties = System.properties as Map<String, ?>
+}
