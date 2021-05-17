@@ -74,9 +74,10 @@ class ShortUrlControllerTest {
 
         given(shortUrlService.createShortUrl(any(ShortUrlDto.class))).willReturn(expected);
 
-        final ResultActions resultActions = mockMvc.perform(post("/short_urls")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(payload))
+        final ResultActions resultActions = mockMvc.perform(
+                post("/short_urls")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
                 .andDo(print());
 
         resultActions
@@ -97,9 +98,10 @@ class ShortUrlControllerTest {
                 "\"alias\": \"ex\"," +
                 "}";
 
-        final ResultActions resultActions = mockMvc.perform(post("/short_urls")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(payload))
+        final ResultActions resultActions = mockMvc.perform(
+                post("/short_urls")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
                 .andDo(print());
 
         resultActions.andExpect(status().isBadRequest());
@@ -118,9 +120,10 @@ class ShortUrlControllerTest {
         );
         given(shortUrlService.getAllShortUrls()).willReturn(expected);
 
-        final ResultActions resultActions = mockMvc.perform(get("/short_urls")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.APPLICATION_JSON))
+        final ResultActions resultActions = mockMvc.perform(
+                get("/short_urls")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
                 .andDo(print());
 
         resultActions
