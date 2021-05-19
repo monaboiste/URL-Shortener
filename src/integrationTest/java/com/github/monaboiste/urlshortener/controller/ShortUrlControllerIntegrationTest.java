@@ -7,187 +7,185 @@ import com.github.monaboiste.urlshortener.error.Error;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.web.server.LocalServerPort;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.*;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.jdbc.datasource.init.ScriptUtils;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.List;
+import javax.sql.DataSource;
+import javax.transaction.Transactional;
+import java.sql.Connection;
+import java.sql.SQLException;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ActiveProfiles("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@AutoConfigureMockMvc
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
-                "server.domain=http://localhost",
-                "client.domain=http://localhost",
+                "client.domain=http://localhost:8080",
                 "client.port=8080"
         }
 )
 public class ShortUrlControllerIntegrationTest {
 
-    @LocalServerPort
-    private int testServerPort;
+    @Autowired
+    private MockMvc mockMvc;
 
-    @Value("${server.domain}")
-    private String testServerUrl;
-
-    @Value("${client.port}")
-    private int testClientPort;
-
-    @Value("${client.domain}")
+    @Value("${client.domain}:${client.port}")
     private String testClientUrl;
 
     @Autowired
     private ObjectMapper objectMapper;
 
-    private TestRestTemplate restTemplate;
-
     @BeforeAll
-    void setUp() {
-        testServerUrl = String.format("%s:%d", testServerUrl, testServerPort);
-        testClientUrl = String.format("%s:%d", testClientUrl, testClientPort);
-        restTemplate = new TestRestTemplate();
+    void setUp(@Autowired final DataSource dataSource) {
+        try (Connection conn = dataSource.getConnection()) {
+            conn.setAutoCommit(true);
+            ScriptUtils.executeSqlScript(conn, new ClassPathResource("sample-test-data.sql"));
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
     }
 
     @Test
-    @Order(1)
+    @Transactional
     void shouldCreateNewShortUrlAndReturnCreatedShortUrlDto_Returns_201() throws Exception {
-        final ShortUrlDto shortUrlDto = ShortUrlDto.builder()
+        final ShortUrlDto validWithAllFields = ShortUrlDto.builder()
                 .url("example.com")
-                .alias("ex")
+                .alias("sample-example")
                 .build();
-        final String redirectingUrl = String.format("%s/%s", testClientUrl, shortUrlDto.getAlias());
-        final HttpEntity<ShortUrlDto> request = createRequest(shortUrlDto);
+        final String expectedRedirectingUrl = String.format("%s/%s", testClientUrl, validWithAllFields.getAlias());
 
-        final ResponseEntity<ShortUrlDto> response = restTemplate.postForEntity(
-                testServerUrl + "/api/short_urls",
-                request,
-                ShortUrlDto.class
-        );
-        final ShortUrlDto shortUrlDtoInResponse = response.getBody();
+        final MockHttpServletResponse response = mockMvc.perform(
+                post("/short_urls")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(convertToJson(validWithAllFields)))
+                .andDo(print())
+                .andReturn()
+                .getResponse();
+
+        final ShortUrlDto actual = convertToPojo(response.getContentAsString(), ShortUrlDto.class);
 
         assertAll(
-                () -> assertEquals(HttpStatus.CREATED, response.getStatusCode()),
-                () -> assertEquals(shortUrlDtoInResponse.getUrl(), shortUrlDto.getUrl()),
-                () -> assertEquals(shortUrlDtoInResponse.getAlias(), shortUrlDto.getAlias()),
-                () -> assertEquals(redirectingUrl, shortUrlDtoInResponse.getRedirectingUrl()),
-                () -> assertNotEquals(0, shortUrlDtoInResponse.getId()),
-                () -> assertNotNull(shortUrlDtoInResponse.getCreatedAt())
+                () -> assertThat(response.getStatus()).isEqualTo(HttpStatus.CREATED.value()),
+                () -> assertThat(actual.getUrl()).isEqualTo(validWithAllFields.getUrl()),
+                () -> assertThat(actual.getAlias()).isEqualTo(validWithAllFields.getAlias()),
+                () -> assertThat(actual.getRedirectingUrl()).isEqualTo(expectedRedirectingUrl),
+                () -> assertThat(actual.getId()).isNotEqualTo(0),
+                () -> assertThat(actual.getCreatedAt()).isNotNull()
         );
     }
 
-    /**
-     * Should be run after shouldCreateNewShortUrlAndReturnCreatedShortUrlDto_Returns_201
-     */
     @Test
-    @Order(2)
     void shouldFailOnCreatingShortUrlWhenTakenAlias_Returns_400() throws Exception {
-        final ShortUrlDto shortUrlDto = ShortUrlDto.builder()
+        final ShortUrlDto invalidWithTakenAlias = ShortUrlDto.builder()
                 .url("example.com")
-                .alias("ex")
+                .alias("sample-1")
                 .build();
-        final HttpEntity<ShortUrlDto> request = createRequest(shortUrlDto);
 
-        final ResponseEntity<String> response = restTemplate.postForEntity(
-                testServerUrl + "/api/short_urls",
-                request,
-                String.class
-        );
-        final Error error = convertToPojo(response.getBody(), Error.class);
+        final MockHttpServletResponse response = mockMvc.perform(
+                post("/short_urls")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(convertToJson(invalidWithTakenAlias)))
+                .andDo(print())
+                .andReturn()
+                .getResponse();
+
+        final Error actual = convertToPojo(response.getContentAsString(), Error.class);
 
         assertAll(
-                () -> assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode()),
-                () -> assertEquals(1, error.getErrors().size()),
-                () -> assertEquals("alias", error.getErrors().get(0).getField())
+                () -> assertThat(response.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value()),
+                () -> assertThat(actual.getErrors().size()).isEqualTo(1),
+                () -> assertThat(actual.getErrors().get(0).getField()).isEqualTo("alias")
         );
     }
 
-    /**
-     * Should be run after shouldCreateNewShortUrlAndReturnCreatedShortUrlDto_Returns_201
-     */
     @Test
-    @Order(3)
-    void shouldGetAllShortUrls_Returns_200() throws JsonProcessingException {
-        final ResponseEntity<String> response = restTemplate.getForEntity(
-                testServerUrl + "/api/short_urls",
-                String.class
-        );
-        final ShortUrlDto[] shortUrlDtos = convertToPojo(response.getBody(), ShortUrlDto[].class);
+    void shouldGetAllShortUrls_Returns_200() throws Exception {
+        final MockHttpServletResponse response = mockMvc.perform(
+                get("/short_urls")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse();
+
+        final ShortUrlDto[] actual = convertToPojo(response.getContentAsString(), ShortUrlDto[].class);
 
         assertAll(
-                () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-                () -> assertEquals(1, shortUrlDtos.length)
+                () -> assertThat(response.getStatus()).isEqualTo(HttpStatus.OK.value()),
+                () -> assertThat(actual.length).isEqualTo(3)
         );
     }
 
     @Test
     void shouldFailOnCreatingShortUrlWhenNoRequiredUrlField_Returns_400() throws Exception {
-        final ShortUrlDto shortUrlDto = ShortUrlDto.builder()
-                .alias("ex3")
+        final ShortUrlDto invalidWithoutUrl = ShortUrlDto.builder()
+                .alias("sample")
                 .build();
-        final HttpEntity<ShortUrlDto> request = createRequest(shortUrlDto);
 
-        final ResponseEntity<String> response = restTemplate.postForEntity(
-                testServerUrl + "/api/short_urls",
-                request,
-                String.class
-        );
-        final Error error = convertToPojo(response.getBody(), Error.class);
+        final MockHttpServletResponse response = mockMvc.perform(
+                post("/short_urls")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(convertToJson(invalidWithoutUrl)))
+                .andDo(print())
+                .andReturn()
+                .getResponse();
+
+        final Error actual = convertToPojo(response.getContentAsString(), Error.class);
 
         assertAll(
-                () -> assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode()),
-                () -> assertEquals(1, error.getErrors().size()),
-                () -> assertEquals("url", error.getErrors().get(0).getField())
+                () -> assertThat(response.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value()),
+                () -> assertThat(actual.getErrors().size()).isEqualTo(1),
+                () -> assertThat(actual.getErrors().get(0).getField()).isEqualTo("url")
         );
     }
 
     @Test
-    void shouldCreateRandomAliasWhenNoAliasPresent_Returns_201() {
-        final ShortUrlDto shortUrlDto = ShortUrlDto.builder()
+    void shouldCreateRandomAliasWhenNoAliasPresent_Returns_201() throws Exception {
+        final ShortUrlDto validWithoutAlias = ShortUrlDto.builder()
                 .url("example.com")
                 .build();
-        final HttpEntity<ShortUrlDto> request = createRequest(shortUrlDto);
 
-        final ResponseEntity<ShortUrlDto> response = restTemplate.postForEntity(
-                testServerUrl + "/api/short_urls",
-                request,
-                ShortUrlDto.class
-        );
-        final ShortUrlDto shortUrlDtoInResponse = response.getBody();
+        final MockHttpServletResponse response = mockMvc.perform(
+                post("/short_urls")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(convertToJson(validWithoutAlias)))
+                .andDo(print())
+                .andReturn()
+                .getResponse();
+
+        final ShortUrlDto actual = convertToPojo(response.getContentAsString(), ShortUrlDto.class);
 
         assertAll(
-                () -> assertEquals(HttpStatus.CREATED, response.getStatusCode()),
-                () -> assertEquals(shortUrlDtoInResponse.getUrl(), shortUrlDto.getUrl()),
-                () -> assertNotNull(shortUrlDtoInResponse.getAlias()),
-                () -> assertNotNull(shortUrlDtoInResponse.getRedirectingUrl()),
-                () -> assertNotEquals(0, shortUrlDtoInResponse.getId()),
-                () -> assertNotNull(shortUrlDtoInResponse.getCreatedAt())
+                () -> assertThat(response.getStatus()).isEqualTo(HttpStatus.CREATED.value()),
+                () -> assertThat(actual.getId()).isNotEqualTo(0),
+                () -> assertThat(actual.getAlias()).isNotNull(),
+                () -> assertThat(actual.getUrl()).isEqualTo(validWithoutAlias.getUrl()),
+                () -> assertThat(actual.getRedirectingUrl()).isNotNull(),
+                () -> assertThat(actual.getCreatedAt()).isNotNull()
         );
-    }
-
-    private <T> HttpEntity<T> createRequest(final T requestedBody) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        return new HttpEntity<>(requestedBody, headers);
     }
 
     private <T> T convertToPojo(final String jsonString, Class clazz) throws JsonProcessingException {
         return (T) objectMapper.readValue(jsonString, clazz);
     }
 
-    public <T> List<T> getApi(final String path, final HttpMethod method) {
-        final ResponseEntity<List<T>> response = restTemplate.exchange(
-                path,
-                method,
-                null,
-                new ParameterizedTypeReference<List<T>>(){});
-        List<T> list = response.getBody();
-        return list;
+    private <T> String convertToJson(final T pojo) throws JsonProcessingException {
+        return objectMapper.writeValueAsString(pojo);
     }
 }
