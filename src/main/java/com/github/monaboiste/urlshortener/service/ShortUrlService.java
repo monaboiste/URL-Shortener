@@ -25,15 +25,15 @@ public class ShortUrlService {
 
     public ShortUrlDto createShortUrl(final ShortUrlDto shortUrlDto) {
         ShortUrl shortUrl = ShortUrlConverter.convertToEntity(shortUrlDto);
-        shortUrl.setCreatedAt(OffsetDateTime.now());
 
         if (shortUrl.getAlias() == null) {
             setRandomGeneratedAlias(shortUrl);
         }
+         shortUrl.setCreatedAt(OffsetDateTime.now());
+         shortUrl.setRedirectingUrl(String.format("%s/%s", domainUrl, shortUrl.getAlias()));
 
         final ShortUrl persistedShortUrl = shortUrlRepository.save(shortUrl);
-
-        return ShortUrlConverter.convertToDto(persistedShortUrl, domainUrl);
+        return ShortUrlConverter.convertToDto(persistedShortUrl);
     }
 
     private void setRandomGeneratedAlias(final ShortUrl shortUrl) {
@@ -46,6 +46,6 @@ public class ShortUrlService {
 
     public List<ShortUrlDto> getAllShortUrls() {
         final List<ShortUrl> shortUrls = shortUrlRepository.findAll();
-        return ShortUrlConverter.convertToDtoList(shortUrls, domainUrl);
+        return ShortUrlConverter.convertToDtoList(shortUrls);
     }
 }

@@ -69,7 +69,7 @@ class ShortUrlControllerTest {
                 .id(1L)
                 .url("example.com")
                 .alias("ex")
-                .redirectingUrl("http://localhost/ex")
+                .redirectingUrl("http://localhost:8080/ex")
                 .createdAt(OffsetDateTime.of(2021, 5, 1, 10, 0, 0, 0, ZoneOffset.UTC))
                 .build();
 
@@ -114,7 +114,7 @@ class ShortUrlControllerTest {
                     .id(1L)
                     .url("example.com")
                     .alias("ex")
-                    .redirectingUrl("http://localhost/ex")
+                    .redirectingUrl("http://localhost:8080/ex")
                     .createdAt(OffsetDateTime.of(2021, 5, 1, 10, 0, 0, 0, ZoneOffset.UTC))
                     .build()
         );

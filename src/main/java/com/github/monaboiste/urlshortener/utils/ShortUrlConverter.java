@@ -16,25 +16,26 @@ public class ShortUrlConverter {
                 .id(shortUrlDto.getId())
                 .url(shortUrlDto.getUrl())
                 .alias(shortUrlDto.getAlias())
+                .redirectingUrl(shortUrlDto.getRedirectingUrl())
+                .createdAt(shortUrlDto.getCreatedAt())
                 .build();
         return shortUrl;
     }
 
-    public static ShortUrlDto convertToDto(final ShortUrl shortUrl, final String domainUrl) {
+    public static ShortUrlDto convertToDto(final ShortUrl shortUrl) {
         final ShortUrlDto shortUrlDto = ShortUrlDto.builder()
                 .id(shortUrl.getId())
                 .url(shortUrl.getUrl())
                 .alias(shortUrl.getAlias())
-                .redirectingUrl(String.format("%s/%s", domainUrl, shortUrl.getAlias()))
+                .redirectingUrl(shortUrl.getRedirectingUrl())
                 .createdAt(shortUrl.getCreatedAt())
                 .build();
         return shortUrlDto;
     }
 
-    public static List<ShortUrlDto> convertToDtoList(final List<ShortUrl> shortUrls,
-                                                     final String domainUrl) {
+    public static List<ShortUrlDto> convertToDtoList(final List<ShortUrl> shortUrls) {
         List<ShortUrlDto> dtos = shortUrls.stream()
-                .map(url -> convertToDto(url, domainUrl))
+                .map(ShortUrlConverter::convertToDto)
                 .collect(Collectors.toList());
         return dtos;
     }

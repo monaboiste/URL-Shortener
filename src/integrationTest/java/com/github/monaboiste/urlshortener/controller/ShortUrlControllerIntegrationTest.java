@@ -33,20 +33,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @AutoConfigureMockMvc
-@SpringBootTest(
-        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = {
-                "client.domain=http://localhost:8080",
-                "client.port=8080"
-        }
-)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class ShortUrlControllerIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Value("${client.domain}:${client.port}")
-    private String testClientUrl;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -68,7 +59,6 @@ public class ShortUrlControllerIntegrationTest {
                 .url("example.com")
                 .alias("sample-example")
                 .build();
-        final String expectedRedirectingUrl = String.format("%s/%s", testClientUrl, validWithAllFields.getAlias());
 
         final MockHttpServletResponse response = mockMvc.perform(
                 post("/short_urls")
@@ -82,10 +72,10 @@ public class ShortUrlControllerIntegrationTest {
 
         assertAll(
                 () -> assertThat(response.getStatus()).isEqualTo(HttpStatus.CREATED.value()),
+                () -> assertThat(actual.getId()).isNotEqualTo(0),
                 () -> assertThat(actual.getUrl()).isEqualTo(validWithAllFields.getUrl()),
                 () -> assertThat(actual.getAlias()).isEqualTo(validWithAllFields.getAlias()),
-                () -> assertThat(actual.getRedirectingUrl()).isEqualTo(expectedRedirectingUrl),
-                () -> assertThat(actual.getId()).isNotEqualTo(0),
+                () -> assertThat(actual.getRedirectingUrl()).isNotNull(),
                 () -> assertThat(actual.getCreatedAt()).isNotNull()
         );
     }

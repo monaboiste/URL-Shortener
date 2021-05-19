@@ -24,6 +24,9 @@ public class ShortUrl {
     @Column(name = "alias", nullable = false, unique = true)
     private String alias;
 
+    @Transient
+    private String redirectingUrl;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 }

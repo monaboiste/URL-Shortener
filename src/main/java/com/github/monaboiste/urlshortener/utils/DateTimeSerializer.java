@@ -15,7 +15,8 @@ public class DateTimeSerializer extends JsonSerializer<OffsetDateTime> {
     public void serialize(final OffsetDateTime dateTime,
                           final JsonGenerator jsonGenerator,
                           final SerializerProvider provider) throws IOException {
-        final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyy-MM-dd'T'HH:mm:ssO")
+        final DateTimeFormatter dateTimeFormatter = DateTimeFormatter
+                .ofPattern("yyy-MM-dd'T'HH:mm:ssO")
                 .withZone(ZoneOffset.UTC);
         jsonGenerator.writeString(dateTimeFormatter.format(dateTime));
     }
