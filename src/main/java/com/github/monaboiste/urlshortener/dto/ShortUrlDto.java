@@ -1,7 +1,9 @@
 package com.github.monaboiste.urlshortener.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.github.monaboiste.urlshortener.utils.DateTimeDeserializer;
 import com.github.monaboiste.urlshortener.utils.DateTimeSerializer;
 import com.github.monaboiste.urlshortener.validation.UniqueAlias;
 import lombok.AllArgsConstructor;
@@ -36,5 +38,6 @@ public class ShortUrlDto {
 
     @JsonProperty
     @JsonSerialize(using = DateTimeSerializer.class)
+    @JsonDeserialize(using = DateTimeDeserializer.class)
     private OffsetDateTime createdAt;
 }
