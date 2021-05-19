@@ -6,7 +6,7 @@ client:
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/url_shortener
+    url: jdbc:mysql://localhost:3306/url_shortener?serverTimezone=UTC
     username: ${MYSQL_USER}
     password: ${MYSQL_PASSWORD}
   jpa:

@@ -15,7 +15,6 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -88,7 +87,7 @@ class ShortUrlControllerTest {
                 .andExpect(jsonPath("$.url", is(expected.getUrl())))
                 .andExpect(jsonPath("$.alias", is(expected.getAlias())))
                 .andExpect(jsonPath("$.redirectingUrl", is(expected.getRedirectingUrl())))
-                .andExpect(jsonPath("$.createdAt", is(formatDateTime(expected.getCreatedAt()))));
+                .andExpect(jsonPath("$.createdAt", is(serializeDateTime(expected.getCreatedAt()))));
 
         then(shortUrlService).should(times(1)).createShortUrl(any(ShortUrlDto.class));
     }
@@ -135,20 +134,21 @@ class ShortUrlControllerTest {
                 .andExpect(jsonPath("$[0].alias", is(expected.get(0).getAlias())))
                 .andExpect(jsonPath("$[0].redirectingUrl", is(expected.get(0).getRedirectingUrl())))
                 .andExpect(jsonPath("$[0].createdAt", is(
-                        formatDateTime(expected.get(0).getCreatedAt()))));
+                        serializeDateTime(expected.get(0).getCreatedAt()))));
 
         then(shortUrlService).should(times(1)).getAllShortUrls();
     }
 
     /**
-     * Method formats date to "yyy-MM-dd'T'HH:mm:ssXXX" pattern
-     * as {@link ShortUrlDto} has set @JsonFormat on createdAt field
+     * Method {@param dateTime} date to "yyyy-MM-dd'T'HH:mm:ssO" pattern
+     * as {@link ShortUrlDto} has set {@link com.fasterxml.jackson.annotation.JsonFormat}
+     * on createdAt field.
      *
      * @param dateTime
-     * @return String formatted as "yyy-MM-dd'T'HH:mm:ssXXX"
+     * @return String formatted as "yyy-MM-dd'T'HH:mm:ssO"
      */
-    private static String formatDateTime(final OffsetDateTime dateTime) {
-        final String pattern = "yyy-MM-dd'T'HH:mm:ssXXX";
+    private static String serializeDateTime(final OffsetDateTime dateTime) {
+        final String pattern = "yyy-MM-dd'T'HH:mm:ssO";
         return dateTime.format(DateTimeFormatter.ofPattern(pattern));
     }
 }
