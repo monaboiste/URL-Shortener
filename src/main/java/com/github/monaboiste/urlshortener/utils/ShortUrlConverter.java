@@ -4,9 +4,7 @@ import com.github.monaboiste.urlshortener.dto.ShortUrlDto;
 import com.github.monaboiste.urlshortener.persistence.entity.ShortUrl;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,14 +21,12 @@ public class ShortUrlConverter {
     }
 
     public static ShortUrlDto convertToDto(final ShortUrl shortUrl, final String domainUrl) {
-        final LocalDateTime localDateTime = DateTimeZoneConverter
-                .convertUtcToLocalDateTime(shortUrl.getCreatedAt());
         final ShortUrlDto shortUrlDto = ShortUrlDto.builder()
                 .id(shortUrl.getId())
                 .url(shortUrl.getUrl())
                 .alias(shortUrl.getAlias())
                 .redirectingUrl(String.format("%s/%s", domainUrl, shortUrl.getAlias()))
-                .createdAt(localDateTime)
+                .createdAt(shortUrl.getCreatedAt())
                 .build();
         return shortUrlDto;
     }

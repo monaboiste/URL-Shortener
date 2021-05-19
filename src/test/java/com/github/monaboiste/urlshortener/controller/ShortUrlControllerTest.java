@@ -16,6 +16,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
@@ -69,7 +71,7 @@ class ShortUrlControllerTest {
                 .url("example.com")
                 .alias("ex")
                 .redirectingUrl("http://localhost/ex")
-                .createdAt(LocalDateTime.now())
+                .createdAt(OffsetDateTime.of(2021, 5, 1, 10, 0, 0, 0, ZoneOffset.UTC))
                 .build();
 
         given(shortUrlService.createShortUrl(any(ShortUrlDto.class))).willReturn(expected);
@@ -86,8 +88,7 @@ class ShortUrlControllerTest {
                 .andExpect(jsonPath("$.url", is(expected.getUrl())))
                 .andExpect(jsonPath("$.alias", is(expected.getAlias())))
                 .andExpect(jsonPath("$.redirectingUrl", is(expected.getRedirectingUrl())))
-                .andExpect(jsonPath("$.createdAt", is(
-                        formatLocalDateTime(expected.getCreatedAt()))));
+                .andExpect(jsonPath("$.createdAt", is(formatDateTime(expected.getCreatedAt()))));
 
         then(shortUrlService).should(times(1)).createShortUrl(any(ShortUrlDto.class));
     }
@@ -115,7 +116,7 @@ class ShortUrlControllerTest {
                     .url("example.com")
                     .alias("ex")
                     .redirectingUrl("http://localhost/ex")
-                    .createdAt(LocalDateTime.now())
+                    .createdAt(OffsetDateTime.of(2021, 5, 1, 10, 0, 0, 0, ZoneOffset.UTC))
                     .build()
         );
         given(shortUrlService.getAllShortUrls()).willReturn(expected);
@@ -134,20 +135,20 @@ class ShortUrlControllerTest {
                 .andExpect(jsonPath("$[0].alias", is(expected.get(0).getAlias())))
                 .andExpect(jsonPath("$[0].redirectingUrl", is(expected.get(0).getRedirectingUrl())))
                 .andExpect(jsonPath("$[0].createdAt", is(
-                        formatLocalDateTime(expected.get(0).getCreatedAt()))));
+                        formatDateTime(expected.get(0).getCreatedAt()))));
 
         then(shortUrlService).should(times(1)).getAllShortUrls();
     }
 
     /**
-     * Method formats date to "yyyy-MM-dd'T'hh:mm:ss" pattern
+     * Method formats date to "yyy-MM-dd'T'HH:mm:ssXXX" pattern
      * as {@link ShortUrlDto} has set @JsonFormat on createdAt field
      *
-     * @param localDateTime
-     * @return String formatted as "yyyy-MM-dd'T'hh:mm:ss"
+     * @param dateTime
+     * @return String formatted as "yyy-MM-dd'T'HH:mm:ssXXX"
      */
-    private static String formatLocalDateTime(final LocalDateTime localDateTime) {
-        final String pattern = "yyyy-MM-dd'T'hh:mm:ss";
-        return localDateTime.format(DateTimeFormatter.ofPattern(pattern));
+    private static String formatDateTime(final OffsetDateTime dateTime) {
+        final String pattern = "yyy-MM-dd'T'HH:mm:ssXXX";
+        return dateTime.format(DateTimeFormatter.ofPattern(pattern));
     }
 }

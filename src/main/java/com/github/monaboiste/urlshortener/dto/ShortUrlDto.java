@@ -2,6 +2,7 @@ package com.github.monaboiste.urlshortener.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.github.monaboiste.urlshortener.validation.UniqueAlias;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,6 +12,7 @@ import org.springframework.lang.Nullable;
 
 import javax.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -18,7 +20,7 @@ import java.time.LocalDateTime;
 @Builder
 public class ShortUrlDto {
 
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    @JsonProperty
     private long id;
 
     @NotBlank
@@ -30,10 +32,10 @@ public class ShortUrlDto {
     @JsonProperty
     private String alias;
 
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    @JsonProperty
     private String redirectingUrl;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'hh:mm:ss")
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    private LocalDateTime createdAt;
+    @JsonProperty
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyy-MM-dd'T'HH:mm:ssXXX")
+    private OffsetDateTime createdAt;
 }
