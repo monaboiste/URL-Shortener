@@ -7,10 +7,12 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 
 @ActiveProfiles("test")
 class ShortUrlConverterTest {
@@ -20,7 +22,7 @@ class ShortUrlConverterTest {
     @Test
     void shouldConvertShortUrlDtoToEntity() {
         final ShortUrlDto shortUrlDto = ShortUrlDto.builder()
-                .id(1)
+                .id(1L)
                 .url("example.com")
                 .alias("ex")
                 .build();
@@ -28,52 +30,48 @@ class ShortUrlConverterTest {
         final ShortUrl shortUrl = ShortUrlConverter.convertToEntity(shortUrlDto);
 
         assertAll(
-                () -> assertEquals(shortUrlDto.getId(), shortUrl.getId()),
-                () -> assertEquals(shortUrlDto.getUrl(), shortUrl.getUrl()),
-                () -> assertEquals(shortUrlDto.getAlias(), shortUrl.getAlias())
+                () -> assertThat(shortUrlDto.getId()).isEqualTo(shortUrl.getId()),
+                () -> assertThat(shortUrlDto.getUrl()).isEqualTo(shortUrl.getUrl()),
+                () -> assertThat(shortUrlDto.getAlias()).isEqualTo(shortUrl.getAlias())
         );
     }
 
     @Test
     void shouldConvertShortUrlEntityToDto() {
-        final OffsetDateTime utcDateTime = OffsetDateTime.now();
-        final LocalDateTime localDateTime = DateTimeZoneConverter.convertUtcToLocalDateTime(utcDateTime);
         final ShortUrl shortUrl = ShortUrl.builder()
-                .id(1)
+                .id(1L)
                 .url("example.com")
                 .alias("ex")
-                .createdAt(utcDateTime)
+                .createdAt(OffsetDateTime.of(2021, 5, 1, 10, 0, 0, 0, ZoneOffset.UTC))
                 .build();
 
         final ShortUrlDto shortUrlDto = ShortUrlConverter.convertToDto(shortUrl, DOMAIN_URL);
 
         assertAll(
-                () -> assertEquals(shortUrl.getId(), shortUrlDto.getId()),
-                () -> assertEquals(shortUrl.getUrl(), shortUrlDto.getUrl()),
-                () -> assertEquals(shortUrl.getAlias(), shortUrlDto.getAlias()),
-                () -> assertEquals(localDateTime, shortUrlDto.getCreatedAt())
+                () -> assertThat(shortUrlDto.getId()).isEqualTo(shortUrl.getId()),
+                () -> assertThat(shortUrlDto.getUrl()).isEqualTo(shortUrl.getUrl()),
+                () -> assertThat(shortUrlDto.getAlias()).isEqualTo(shortUrl.getAlias()),
+                () -> assertThat(shortUrlDto.getCreatedAt()).isEqualTo(shortUrl.getCreatedAt())
         );
     }
 
     @Test
     void shouldConvertShortUrlEntityListToDtoList() {
-        final OffsetDateTime utcDateTime = OffsetDateTime.now();
-        final LocalDateTime localDateTime = DateTimeZoneConverter.convertUtcToLocalDateTime(utcDateTime);
         final List<ShortUrl> shortUrls = Arrays.asList(ShortUrl.builder()
-                .id(1)
+                .id(1L)
                 .url("example.com")
                 .alias("ex")
-                .createdAt(utcDateTime)
+                .createdAt(OffsetDateTime.of(2021, 5, 1, 10, 0, 0, 0, ZoneOffset.UTC))
                 .build()
         );
 
-        final List<ShortUrlDto> shortUrlDtoList = ShortUrlConverter.convertToDtoList(shortUrls, DOMAIN_URL);
+        final List<ShortUrlDto> shortUrlDtos = ShortUrlConverter.convertToDtoList(shortUrls, DOMAIN_URL);
 
         assertAll(
-                () -> assertEquals(shortUrls.get(0).getId(), shortUrlDtoList.get(0).getId()),
-                () -> assertEquals(shortUrls.get(0).getUrl(), shortUrlDtoList.get(0).getUrl()),
-                () -> assertEquals(shortUrls.get(0).getAlias(), shortUrlDtoList.get(0).getAlias()),
-                () -> assertEquals(localDateTime, shortUrlDtoList.get(0).getCreatedAt())
+                () -> assertThat(shortUrls.get(0).getId()).isEqualTo(shortUrlDtos.get(0).getId()),
+                () -> assertThat(shortUrls.get(0).getUrl()).isEqualTo(shortUrlDtos.get(0).getUrl()),
+                () -> assertThat(shortUrls.get(0).getAlias()).isEqualTo(shortUrlDtos.get(0).getAlias()),
+                () -> assertThat(shortUrls.get(0).getCreatedAt()).isEqualTo(shortUrlDtos.get(0).getCreatedAt())
         );
     }
 }
